@@ -274,11 +274,7 @@
       position: relative; text-align: center;
       max-width: 580px; width: 94%;
     }
-    .win-banner-wrap .b-bg {
-      position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; border-radius: 12px; opacity: 0.9;
-    }
-    .win-banner-wrap .b-gif { width: 100%; position: relative; z-index: 1; border-radius: 12px; }
+    .win-banner-wrap .b-gif { width: 100%; border-radius: 12px; }
     .win-amount-text {
       position: relative; z-index: 2;
       font-size: clamp(26px,5vw,46px); font-weight: 900; color: #ffd700;
@@ -453,7 +449,6 @@
 <!-- ══ WIN BANNER ════════════════════════════════════════════ -->
 <div class="overlay hidden" id="win-overlay">
   <div class="win-banner-wrap">
-    <img class="b-bg"  id="b-bg"  src="" alt="">
     <img class="b-gif" id="b-gif" src="" alt="">
     <div class="win-amount-text" id="win-amt-text"></div>
     <button class="btn-collect" onclick="closeWinModal()">COLLECT</button>
@@ -868,7 +863,6 @@ function showWinModal(amount) {
   if (amount <= 0) return Promise.resolve();
   const code = bannerCode(amount);
   const b = BANNERS[code];
-  document.getElementById('b-bg').src  = b.bg;
   // Force GIF restart
   document.getElementById('b-gif').src = b.gif + '?v=' + Date.now();
   document.getElementById('win-amt-text').textContent = 'WIN: ' + fmt(amount);
