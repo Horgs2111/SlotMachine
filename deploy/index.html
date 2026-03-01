@@ -534,8 +534,6 @@ const WILD_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://
 const SYM = {
   A:  { name:'Ace',     img:'images/Symbol_A.png',   pays:[3,    6,    15  ], scatter:false },
   K:  { name:'King',    img:'images/Symbol_K.png',   pays:[2,    4,    8   ], scatter:false },
-  Q:  { name:'Queen',   img:'images/Symbol_Q.png',   pays:[1.5,  3,    6   ], scatter:false },
-  J:  { name:'Jack',    img:'images/Symbol_J.png',   pays:[1,    2,    4   ], scatter:false },
   S:  { name:'7',       img:'images/Symbol_7.png',   pays:[0.5,  1,    2   ], scatter:false },
   CR: { name:'Crown',   img:'images/Symbol_CR.png',  pays:[6,    15,   24  ], scatter:false },
   BA: { name:'Cash',    img:'images/Symbol_BA.png',  pays:[5,    12.5, 20  ], scatter:false },
@@ -567,12 +565,12 @@ const BANNERS = {
 // Reel distributions (weights out of 100)
 // Reels 0,2,4 include Diamond; reels 1,3 do not
 const DIST_OUTER = [
-  ['J',10],['Q',12],['A',14],['K',12],['S',9],
-  ['CR',9],['DI',7],['BA',7],['BO',6],['CL',6],['ST',4],['WL',4]
+  ['A',17],['K',15],['S',11],['CR',12],['DI',9],
+  ['BA',10],['BO',8],['CL',8],['ST',5],['WL',5]
 ];
 const DIST_INNER = [
-  ['J',10],['Q',12],['A',15],['K',13],['S',10],
-  ['CR',10],['BA',8],['BO',7],['CL',6],['ST',5],['WL',4]
+  ['A',19],['K',16],['S',13],['CR',14],
+  ['BA',11],['BO',9],['CL',8],['ST',6],['WL',4]
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -670,7 +668,7 @@ function buildReelDOM() {
       cell.id = `c-${r}-${row}`;
       cell.style.cssText = `width:${symSize}px;height:${symSize}px;`;
       const img = document.createElement('img');
-      img.src = SYM['J'].img; img.alt = 'J';
+      img.src = SYM['K'].img; img.alt = 'J';
       cell.appendChild(img);
       reelEl.appendChild(cell);
     }
@@ -700,7 +698,7 @@ function setCell(r, row, sym) {
   const c = document.getElementById(`c-${r}-${row}`);
   if (!c) return;
   const img = c.querySelector('img');
-  img.src = SYM[sym]?.img || SYM['J'].img;
+  img.src = SYM[sym]?.img || SYM['K'].img;
   img.alt = sym;
 }
 
@@ -768,9 +766,9 @@ function showLockedStars() {
 }
 
 function highlightPaylines(lines) {
-  lines.forEach(({ lineIdx, pattern, count }) => {
+  lines.forEach(({ lineIdx, pattern, matched }) => {
     document.getElementById('pl-'+lineIdx)?.classList.add('active');
-    for (let r=0;r<count;r++) document.getElementById(`c-${r}-${pattern[r]}`)?.classList.add('win-glow');
+    matched.forEach(r => document.getElementById(`c-${r}-${pattern[r]}`)?.classList.add('win-glow'));
   });
 }
 
@@ -794,27 +792,28 @@ function calcWins(grid) {
     if (sym === 'ST') { stars++;    starPos.push([r,row]); }
   }
 
-  // Paylines — 5 lines (3 horizontal + 2 diagonal), Wild substitutes any symbol
+  // Paylines — 5 lines (3 horizontal + 2 diagonal)
+  // Win condition: any 3+ matching symbols anywhere on the payline (not required to be consecutive)
+  // Wild counts as any symbol
   for (let li=0; li<PAYLINES.length; li++) {
     const pattern = PAYLINES[li];
-    // Find base: first non-wild, non-scatter symbol from left
+    // Find base: first non-wild, non-scatter symbol
     let base = null;
     for (let r=0; r<5; r++) {
       const s = grid[r][pattern[r]];
       if (s !== 'WL' && !SYM[s].scatter) { base = s; break; }
     }
     if (!base) continue;
-    // Count consecutive matches (Wild counts as any symbol)
-    let count = 0;
+    // Count ALL positions on the payline that match base or are Wild
+    const matched = [];
     for (let r=0; r<5; r++) {
       const s = grid[r][pattern[r]];
-      if (s === base || s === 'WL') count++;
-      else break;
+      if (s === base || s === 'WL') matched.push(r);
     }
-    if (count >= 3) {
-      const pay = SYM[base].pays[count-3] * g.bet;
+    if (matched.length >= 3) {
+      const pay = SYM[base].pays[matched.length-3] * g.bet;
       total += pay;
-      lines.push({ lineIdx: li, pattern, sym: base, count, pay });
+      lines.push({ lineIdx: li, pattern, sym: base, count: matched.length, matched, pay });
     }
   }
 
