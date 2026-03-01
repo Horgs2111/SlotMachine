@@ -140,18 +140,18 @@
       display: flex; align-items: center; justify-content: center;
     }
 
-    /* Payline lines */
-    .pl-line {
-      position: absolute; left: 8px; right: 8px; height: 3px;
-      border-radius: 2px; opacity: 0;
-      pointer-events: none;
+    /* Payline SVG overlay */
+    .payline-svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; overflow: visible;
+    }
+    .pl-poly {
+      fill: none; stroke-width: 3; opacity: 0;
+      stroke-linecap: round; stroke-linejoin: round;
       transition: opacity .3s;
     }
-    .pl-line.active { opacity: 1; animation: lineGlow .5s ease-in-out infinite alternate; }
-    @keyframes lineGlow {
-      from { box-shadow: none; }
-      to   { box-shadow: 0 0 10px 4px currentColor; }
-    }
+    .pl-poly.active { opacity: 1; stroke-width: 4; }
 
     /* Reels row */
     .reels { display: flex; gap: 6px; }
@@ -529,6 +529,8 @@ const START_BALANCE = 100000;
 const MIN_BET  = 1;
 const MAX_BET  = 10000;
 
+const WILD_SVG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="12" fill="#1a0050"/><rect x="3" y="3" width="94" height="94" rx="10" fill="none" stroke="#ffd700" stroke-width="4"/><text x="50" y="65" font-family="Arial Black,Arial" font-size="52" font-weight="900" fill="#ffd700" text-anchor="middle">W</text><text x="50" y="88" font-family="Arial Black,Arial" font-size="16" font-weight="900" fill="#ff69b4" text-anchor="middle" letter-spacing="3">WILD</text></svg>');
+
 const SYM = {
   A:  { name:'Ace',     img:'images/Symbol_A.png',   pays:[3,    6,    15  ], scatter:false },
   K:  { name:'King',    img:'images/Symbol_K.png',   pays:[2,    4,    8   ], scatter:false },
@@ -541,8 +543,19 @@ const SYM = {
   CL: { name:'Clover',  img:'images/Symbol_CL.png',  pays:[3,    9,    12  ], scatter:false },
   DI: { name:'Diamond', img:'images/Symbol_DI.png',  pays:[],                 scatter:true  },
   ST: { name:'Star',    img:'images/Symbol_ST.png',  pays:[],                 scatter:true  },
+  WL: { name:'Wild',    img:WILD_SVG,                pays:[],                 scatter:false, wild:true },
 };
 const SYM_KEYS = Object.keys(SYM);
+
+// 5 paylines: 3 horizontal + 2 diagonal (V and inverted-V)
+const PAYLINES = [
+  [0,0,0,0,0],  // top row
+  [1,1,1,1,1],  // middle row
+  [2,2,2,2,2],  // bottom row
+  [0,1,2,1,0],  // V shape
+  [2,1,0,1,2],  // inverted V
+];
+const PAYLINE_COLORS = ['#ff5252','#69f0ae','#40c4ff','#ffd700','#ff69b4'];
 
 const BANNERS = {
   WI: { bg:'images/Banner_Winner_BG.png',  gif:'images/Banner_Winner_AN.gif'  },
@@ -554,12 +567,12 @@ const BANNERS = {
 // Reel distributions (weights out of 100)
 // Reels 0,2,4 include Diamond; reels 1,3 do not
 const DIST_OUTER = [
-  ['J',14],['Q',12],['A',14],['K',12],['S',9],
-  ['CR',9],['DI',7],['BA',7],['BO',6],['CL',6],['ST',4]
+  ['J',10],['Q',12],['A',14],['K',12],['S',9],
+  ['CR',9],['DI',7],['BA',7],['BO',6],['CL',6],['ST',4],['WL',4]
 ];
 const DIST_INNER = [
-  ['J',14],['Q',12],['A',15],['K',13],['S',10],
-  ['CR',10],['BA',8],['BO',7],['CL',6],['ST',5]
+  ['J',10],['Q',12],['A',15],['K',13],['S',10],
+  ['CR',10],['BA',8],['BO',7],['CL',6],['ST',5],['WL',4]
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -641,8 +654,8 @@ function buildReelDOM() {
   const cont = document.getElementById('reels-container');
   cont.innerHTML = '';
 
-  // Remove old payline lines
-  wrap.querySelectorAll('.pl-line').forEach(el => el.remove());
+  // Remove old payline SVG
+  wrap.querySelector('.payline-svg')?.remove();
 
   const symSize = Math.min(Math.floor((window.innerWidth * 0.86 - 80) / 5), 128);
 
@@ -664,20 +677,23 @@ function buildReelDOM() {
     cont.appendChild(reelEl);
   }
 
-  // Inject payline lines relative to reel area
-  const topOffset    = 10;
-  const rowH         = symSize;
-  const totalH       = symSize * 3;
-  const lineColors   = ['#ff5252', '#69f0ae', '#40c4ff'];
-  const lineOffsets  = [topOffset + rowH/2, topOffset + rowH*1.5, topOffset + rowH*2.5];
-
-  lineOffsets.forEach((top, row) => {
-    const line = document.createElement('div');
-    line.className = 'pl-line';
-    line.id = 'pl-' + row;
-    line.style.cssText = `top:${top}px;background:${lineColors[row]};color:${lineColors[row]};`;
-    wrap.appendChild(line);
+  // Inject SVG payline overlay
+  const topPad = 10, sidePad = 8;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'payline-svg');
+  svg.setAttribute('id', 'payline-svg');
+  PAYLINES.forEach((pattern, li) => {
+    const pts = pattern.map((row, r) =>
+      `${sidePad + r*(symSize+6) + symSize/2},${topPad + row*symSize + symSize/2}`
+    ).join(' ');
+    const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    poly.setAttribute('class', 'pl-poly');
+    poly.setAttribute('id', 'pl-' + li);
+    poly.setAttribute('points', pts);
+    poly.setAttribute('stroke', PAYLINE_COLORS[li]);
+    svg.appendChild(poly);
   });
+  wrap.appendChild(svg);
 }
 
 function setCell(r, row, sym) {
@@ -742,7 +758,7 @@ function updateUI() {
 // ─────────────────────────────────────────────────────────────
 function clearHighlights() {
   document.querySelectorAll('.sym-cell').forEach(c => c.classList.remove('win-glow','locked-star'));
-  for (let row=0;row<3;row++) document.getElementById('pl-'+row)?.classList.remove('active');
+  for (let li=0;li<PAYLINES.length;li++) document.getElementById('pl-'+li)?.classList.remove('active');
 }
 
 function showLockedStars() {
@@ -752,9 +768,9 @@ function showLockedStars() {
 }
 
 function highlightPaylines(lines) {
-  lines.forEach(({ row, count }) => {
-    document.getElementById('pl-'+row)?.classList.add('active');
-    for (let r=0;r<count;r++) document.getElementById(`c-${r}-${row}`)?.classList.add('win-glow');
+  lines.forEach(({ lineIdx, pattern, count }) => {
+    document.getElementById('pl-'+lineIdx)?.classList.add('active');
+    for (let r=0;r<count;r++) document.getElementById(`c-${r}-${pattern[r]}`)?.classList.add('win-glow');
   });
 }
 
@@ -778,19 +794,27 @@ function calcWins(grid) {
     if (sym === 'ST') { stars++;    starPos.push([r,row]); }
   }
 
-  // Paylines — 3 horizontal rows, left-to-right consecutive
-  for (let row=0;row<3;row++) {
-    const first = grid[0][row];
-    if (SYM[first].scatter) continue;     // scatters don't pay on lines
-    let count = 1;
-    for (let r=1;r<5;r++) {
-      if (grid[r][row] === first) count++;
+  // Paylines — 5 lines (3 horizontal + 2 diagonal), Wild substitutes any symbol
+  for (let li=0; li<PAYLINES.length; li++) {
+    const pattern = PAYLINES[li];
+    // Find base: first non-wild, non-scatter symbol from left
+    let base = null;
+    for (let r=0; r<5; r++) {
+      const s = grid[r][pattern[r]];
+      if (s !== 'WL' && !SYM[s].scatter) { base = s; break; }
+    }
+    if (!base) continue;
+    // Count consecutive matches (Wild counts as any symbol)
+    let count = 0;
+    for (let r=0; r<5; r++) {
+      const s = grid[r][pattern[r]];
+      if (s === base || s === 'WL') count++;
       else break;
     }
     if (count >= 3) {
-      const pay = SYM[first].pays[count-3] * g.bet;
+      const pay = SYM[base].pays[count-3] * g.bet;
       total += pay;
-      lines.push({ row, sym: first, count, pay });
+      lines.push({ lineIdx: li, pattern, sym: base, count, pay });
     }
   }
 
