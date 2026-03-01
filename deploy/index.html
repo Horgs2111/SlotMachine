@@ -215,7 +215,7 @@
     @keyframes flash { from { color: #76ff03; } to { color: #e8ff80; } }
 
     /* Bet controls */
-    .bet-area { display: flex; align-items: center; gap: 7px; justify-content: center; flex-shrink: 0; }
+    .bet-area { display: flex; align-items: center; gap: 7px; }
     .bet-label { font-size: 10px; letter-spacing: 2px; color: #a07840; }
     .bet-btn {
       background: linear-gradient(180deg,#2a2a4a,#15152a);
@@ -414,15 +414,6 @@
     <div class="reels" id="reels-container"></div>
   </div>
 
-  <!-- Bet Controls -->
-  <div class="bet-area">
-    <span class="bet-label">BET</span>
-    <button class="bet-btn" id="btn-dec">−</button>
-    <span id="bet-val">$1</span>
-    <button class="bet-btn" id="btn-inc">+</button>
-    <button class="btn-max" id="btn-max">MAX</button>
-  </div>
-
   <!-- Controls -->
   <div class="controls-bar">
     <div class="stat-boxes">
@@ -434,6 +425,13 @@
         <span class="stat-label">WIN</span>
         <span class="stat-value" id="win-val">$0</span>
       </div>
+    </div>
+    <div class="bet-area">
+      <span class="bet-label">BET</span>
+      <button class="bet-btn" id="btn-dec">−</button>
+      <span id="bet-val">$1</span>
+      <button class="bet-btn" id="btn-inc">+</button>
+      <button class="btn-max" id="btn-max">MAX</button>
     </div>
     <div class="action-btns">
       <button class="spin-btn" id="btn-spin">
