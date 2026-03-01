@@ -1166,7 +1166,7 @@ function onCashOut() {
 }
 
 function newGame() {
-  maxBet          = MAX_BET_NORMAL;
+  maxBet          = maxBet_NORMAL;
   highBetUnlocked = false;
   g.balance = START_BALANCE;
   g.bet     = MIN_BET;
@@ -1192,7 +1192,7 @@ function newGame() {
 function checkBalanceMilestone() {
   if (!highBetUnlocked && g.balance >= MILLION_THRESHOLD) {
     highBetUnlocked = true;
-    maxBet = MAX_BET_HIGH;
+    maxBet = maxBet_HIGH;
     showMilestoneAlert();
     updateUI();
   }
