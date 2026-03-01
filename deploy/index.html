@@ -1247,8 +1247,9 @@ function setMaxBet() {
 }
 
 // Wire button event listeners
-document.getElementById('btn-dec').addEventListener('click',     () => changeBet(-1));
-document.getElementById('btn-inc').addEventListener('click',     () => changeBet(1));
+const betStep = () => highBetUnlocked ? 100 : 1;
+document.getElementById('btn-dec').addEventListener('click',     () => changeBet(-betStep()));
+document.getElementById('btn-inc').addEventListener('click',     () => changeBet(betStep()));
 document.getElementById('btn-max').addEventListener('click',     () => setMaxBet());
 document.getElementById('btn-spin').addEventListener('click',    () => onSpin());
 document.getElementById('btn-cashout').addEventListener('click', () => onCashOut());
