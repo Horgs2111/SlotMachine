@@ -1069,6 +1069,7 @@ async function endFeature() {
   g.phase = 'idle';
   updateUI();
   if (total > 0) await showWinModal(total);
+  if (pendingMilestone) applyMilestone();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1166,8 +1167,9 @@ function onCashOut() {
 }
 
 function newGame() {
-  maxBet          = maxBet_NORMAL;
-  highBetUnlocked = false;
+  maxBet           = maxBet_NORMAL;
+  highBetUnlocked  = false;
+  pendingMilestone = false;
   g.balance = START_BALANCE;
   g.bet     = MIN_BET;
   g.win     = 0;
@@ -1189,13 +1191,25 @@ function newGame() {
 // ─────────────────────────────────────────────────────────────
 // MILESTONE — $1M max bet upgrade
 // ─────────────────────────────────────────────────────────────
+let pendingMilestone = false;
+
 function checkBalanceMilestone() {
-  if (!highBetUnlocked && g.balance >= MILLION_THRESHOLD) {
-    highBetUnlocked = true;
-    maxBet = maxBet_HIGH;
-    showMilestoneAlert();
-    updateUI();
+  if (highBetUnlocked || pendingMilestone) return;
+  if (g.balance < MILLION_THRESHOLD) return;
+  // If inside a feature, defer until it ends
+  if (g.freeSpinsLeft > 0) {
+    pendingMilestone = true;
+    return;
   }
+  applyMilestone();
+}
+
+function applyMilestone() {
+  pendingMilestone  = false;
+  highBetUnlocked   = true;
+  maxBet            = maxBet_HIGH;
+  showMilestoneAlert();
+  updateUI();
 }
 
 let _milestoneTimer = null;
