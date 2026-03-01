@@ -759,7 +759,9 @@ function updateUI() {
   document.getElementById('bet-val').textContent = fmt(g.bet);
 
   const busy = g.phase === 'spinning' || g.phase === 'winshow' || g.phase === 'cashout';
-  const canSpin = !busy && (g.phase === 'idle' || g.phase === 'feature' || g.phase === 'special');
+  const overlayOpen = !document.getElementById('feature-overlay').classList.contains('hidden')
+                   || !document.getElementById('special-overlay').classList.contains('hidden');
+  const canSpin = !busy && !overlayOpen && (g.phase === 'idle' || g.phase === 'feature' || g.phase === 'special');
 
   document.getElementById('btn-spin').disabled    = !canSpin;
   document.getElementById('btn-cashout').disabled = busy;
@@ -950,27 +952,36 @@ async function onSpin() {
   const stops = reels.map(s => Math.floor(Math.random() * s.length));
   const isSpecial = ctx === 'special';
 
-  // Spin sound loop
-  sfx.spin.loop = true;
-  playSound('spin');
+  try {
+    // Spin sound loop
+    sfx.spin.loop = true;
+    playSound('spin');
 
-  // Start all reels
-  for (let r=0;r<5;r++) startReel(r, isSpecial);
+    // Start all reels
+    for (let r=0;r<5;r++) startReel(r, isSpecial);
 
-  // Stop reels one by one
-  for (let r=0;r<5;r++) {
-    await delay(240 + r * 135);
-    stopReel(r, reelWindow(r, stops[r]), isSpecial);
-  }
+    // Stop reels one by one
+    for (let r=0;r<5;r++) {
+      await delay(240 + r * 135);
+      stopReel(r, reelWindow(r, stops[r]), isSpecial);
+    }
 
-  stopSound('spin');
-  sfx.spin.loop = false;
-  await delay(200);
+    stopSound('spin');
+    sfx.spin.loop = false;
+    await delay(200);
 
-  if (isSpecial) {
-    await processSpecialSpin();
-  } else {
-    await processNormalSpin(isFree, ctx);
+    if (isSpecial) {
+      await processSpecialSpin();
+    } else {
+      await processNormalSpin(isFree, ctx);
+    }
+  } catch(e) {
+    console.error('Spin error:', e);
+    stopSound('spin');
+    sfx.spin.loop = false;
+    // Reset phase so the game is never permanently stuck
+    g.phase = ctx === 'feature' ? 'feature' : (ctx === 'special' ? 'special' : 'idle');
+    updateUI();
   }
 }
 
