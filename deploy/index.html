@@ -916,7 +916,7 @@ async function onSpin() {
 
   // Stop reels one by one
   for (let r=0;r<5;r++) {
-    await delay(480 + r * 270);
+    await delay(240 + r * 135);
     stopReel(r, reelWindow(r, stops[r]), isSpecial);
   }
 
