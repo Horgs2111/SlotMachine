@@ -736,12 +736,12 @@ function updateUI() {
   document.getElementById('btn-inc').disabled     = busy || g.bet >= MAX_BET;
   document.getElementById('btn-max').disabled     = busy || g.bet >= MAX_BET;
 
-  // Feature bar
+  // Feature bar — stays visible throughout the feature, even during spinning
   const fb = document.getElementById('feature-bar');
-  if (g.phase === 'feature') {
+  if (g.freeSpinsLeft > 0) {
     fb.classList.remove('hidden', 'special-mode');
     fb.innerHTML = `💎 FREE SPINS: <span class="fs-num">${g.freeSpinsLeft}</span> remaining &nbsp;|&nbsp; Collected: ${fmt(g.featureTotalWin)}`;
-  } else if (g.phase === 'special') {
+  } else if (g.specialStars > 0 || g.phase === 'special') {
     fb.classList.remove('hidden');
     fb.classList.add('special-mode');
     fb.innerHTML = `⭐ STAR FEATURE — Stars: <span class="fs-num">${g.specialStars}</span> &nbsp;|&nbsp; Respins: <span class="fs-num">${g.specialSpins}</span>`;
