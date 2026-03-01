@@ -236,12 +236,18 @@
     }
     .btn-max:hover { transform: scale(1.05); }
     .btn-max:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
-    #bet-display {
+    #bet-val {
       font-size: 17px; color: #ffd700; font-weight: 900;
-      min-width: 76px; text-align: center;
+      min-width: 80px; text-align: center;
       background: #040410; border: 2px solid #7a5828; border-radius: 6px;
-      padding: 4px 8px;
+      padding: 4px 10px; display: inline-block;
     }
+    @keyframes betFlash {
+      0%   { transform: scale(1);    color: #ffd700; border-color: #7a5828; }
+      40%  { transform: scale(1.2);  color: #fff;    border-color: #ffd700; box-shadow: 0 0 12px #ffd700; }
+      100% { transform: scale(1);    color: #ffd700; border-color: #7a5828; }
+    }
+    #bet-val.bet-flash { animation: betFlash .3s ease-out; }
 
     /* Action buttons */
     .action-btns { display: flex; gap: 10px; align-items: center; }
@@ -426,16 +432,16 @@
     </div>
     <div class="bet-area">
       <span class="bet-label">BET</span>
-      <button class="bet-btn" id="btn-dec" onclick="changeBet(-1)">−</button>
+      <button class="bet-btn" id="btn-dec">−</button>
       <span id="bet-val">$1</span>
-      <button class="bet-btn" id="btn-inc" onclick="changeBet(1)">+</button>
-      <button class="btn-max" id="btn-max" onclick="setMaxBet()">MAX</button>
+      <button class="bet-btn" id="btn-inc">+</button>
+      <button class="btn-max" id="btn-max">MAX</button>
     </div>
     <div class="action-btns">
-      <button class="spin-btn" id="btn-spin" onclick="onSpin()">
+      <button class="spin-btn" id="btn-spin">
         <img src="images/Button_Spin.png" alt="SPIN">
       </button>
-      <button class="cashout-btn" id="btn-cashout" onclick="onCashOut()">
+      <button class="cashout-btn" id="btn-cashout">
         <img src="images/Button_CashOut.png" alt="CASH OUT">
       </button>
     </div>
@@ -1150,6 +1156,37 @@ function startGame() {
   document.getElementById('player-display').textContent = g.name.toUpperCase();
   updateUI();
 }
+
+// ─────────────────────────────────────────────────────────────
+// BET CONTROLS
+// ─────────────────────────────────────────────────────────────
+function changeBet(delta) {
+  const prev = g.bet;
+  g.bet = Math.max(MIN_BET, Math.min(MAX_BET, g.bet + delta));
+  if (g.bet !== prev) {
+    updateUI();
+    const el = document.getElementById('bet-val');
+    el.classList.remove('bet-flash');
+    // Force reflow so animation restarts
+    void el.offsetWidth;
+    el.classList.add('bet-flash');
+  }
+}
+function setMaxBet() {
+  g.bet = Math.min(MAX_BET, g.balance);
+  updateUI();
+  const el = document.getElementById('bet-val');
+  el.classList.remove('bet-flash');
+  void el.offsetWidth;
+  el.classList.add('bet-flash');
+}
+
+// Wire button event listeners
+document.getElementById('btn-dec').addEventListener('click',     () => changeBet(-1));
+document.getElementById('btn-inc').addEventListener('click',     () => changeBet(1));
+document.getElementById('btn-max').addEventListener('click',     () => setMaxBet());
+document.getElementById('btn-spin').addEventListener('click',    () => onSpin());
+document.getElementById('btn-cashout').addEventListener('click', () => onCashOut());
 
 // ─────────────────────────────────────────────────────────────
 // KEYBOARD
